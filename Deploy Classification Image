@@ -69,10 +69,10 @@ model.compile(loss='categorical_crossentropy',
 
 history = model.fit(
       train_generator,
-      steps_per_epoch=25,  # berapa batch yang akan dieksekusi pada setiap epoch
-      epochs=25, # tambahkan eposchs jika akurasi model belum optimal
-      validation_data=validation_generator, # menampilkan akurasi pengujian data validasi
-      validation_steps=5,  # berapa batch yang akan dieksekusi pada setiap epoch
+      steps_per_epoch=25,  # numbers of epoch will excecution
+      epochs=25, # additional epoch
+      validation_data=validation_generator, # shows testing valiadtion data accuration
+      validation_steps=5,  # numbers of batch of epoch will excecution
       verbose=2)
 
 accur = history.history['accuracy']
@@ -102,13 +102,14 @@ for fn in uploaded.keys():
  
   # predicting images
   path = fn
-  # memilih file gambar secara interaktif
+  
+  # choise interactively image file
   img = image.load_img(path, target_size=(100,150))
   imgplot = plt.imshow(img)
   x = image.img_to_array(img)
   x = np.expand_dims(x, axis=0)
 
-  # resize gambar dan mengubahnya menjadi larik numpy
+  # image resize
   images = np.vstack([x])
   classes = model.predict(images, batch_size=10)
   outclass = np.argmax(classes)
