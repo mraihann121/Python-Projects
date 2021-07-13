@@ -67,12 +67,22 @@ model.compile(loss='categorical_crossentropy',
               optimizer= 'adam',
               metrics=['accuracy'])
 
+#calling callback
+%load_ext tensorboard
+from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
+
+best_model_path= 'best_model.h5'
+checkpoint_callback= ModelCheckpoint(best_model_path, monitor= 'accuracy', save_best_only= True, verbose=1)
+reduce_callback= ReduceLROnPlateau(monitor= 'accuracy', patience=3, factor= 0.5, min_lr=0.000003, verbose=1)
+callback_list= [checkpoint_callback, reduce_callback]
+
+
 history = model.fit(
       train_generator,
       steps_per_epoch=25,  # numbers of epoch will excecution
       epochs=25, # additional epoch
       validation_data=validation_generator, # shows testing valiadtion data accuration
-      validation_steps=5,  # numbers of batch of epoch will excecution
+      validation_steps=5, # numbers of batch of epoch will excecution
       verbose=2)
 
 accur = history.history['accuracy']
@@ -85,6 +95,8 @@ epochs = range(len(accur))
 plt.figure(figsize=(12,8))
 plt.plot(epochs, accur, 'r', label='Training accuracy')
 plt.plot(epochs, val_accur, 'b', label='Validation accuracy')
+plt.plot(epochs, loss, 'g', label='Validation accuracy')
+plt.plot(epochs, val_loss, 'c', label='Validation accuracy')
 plt.title('Training and validation accuracy')
 plt.legend(loc=0)
 plt.show()
@@ -102,14 +114,13 @@ for fn in uploaded.keys():
  
   # predicting images
   path = fn
-  
-  # choise interactively image file
+  # memilih file gambar secara interaktif
   img = image.load_img(path, target_size=(100,150))
   imgplot = plt.imshow(img)
   x = image.img_to_array(img)
   x = np.expand_dims(x, axis=0)
 
-  # image resize
+  # resize gambar dan mengubahnya menjadi larik numpy
   images = np.vstack([x])
   classes = model.predict(images, batch_size=10)
   outclass = np.argmax(classes)
