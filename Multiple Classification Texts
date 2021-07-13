@@ -1,0 +1,49 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+import tensorflow as tf
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+df = pd.read_excel('data1.xlsx')
+
+df.head()
+df.info()
+
+category = pd.get_dummies(df.HS)
+df_baru  = pd.concat([df, category], axis=1)
+df_baru = df_baru.drop(columns='HS')
+df_baru
+
+sinopsis = df_baru['Tweet'].values
+label = df_baru[['abusive', 'hate Speech']].values
+
+sinopsis_latih, sinopsis_test, label_latih, label_test = train_test_split(sinopsis, label, test_size=0.2)
+
+tokenizer = Tokenizer(num_words=4000, oov_token='x')
+tokenizer.fit_on_texts(sinopsis_latih) 
+tokenizer.fit_on_texts(sinopsis_test)
+ 
+sekuens_latih = tokenizer.texts_to_sequences(sinopsis_latih)
+sekuens_test = tokenizer.texts_to_sequences(sinopsis_test)
+ 
+padded_latih = pad_sequences(sekuens_latih) 
+padded_test = pad_sequences(sekuens_test)
+
+model = tf.keras.Sequential([
+    tf.keras.layers.Embedding(input_dim=4000, output_dim=16),
+    tf.keras.layers.LSTM(64),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dense(64, activation='relu'),
+    
+    tf.keras.layers.Dense(2, activation='softmax')
+])
+
+model.compile(loss='categorical_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
+
+num_epochs = 30
+history = model.fit(padded_latih, label_latih, epochs=num_epochs, 
+                    validation_data=(padded_test, label_test), verbose=2)
