@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-df = pd.read_excel('data1.xlsx')
+df = pd.read_excel('data1.xlsx') #download this file at https://github.com/mraihann121/Python-Projects
 
 df.head()
 df.info()
