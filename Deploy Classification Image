@@ -1,0 +1,122 @@
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+import numpy as np
+from google.colab import files
+from keras.preprocessing import image
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+%matplotlib inline
+
+
+print(tf.__version__)
+
+!wget --no-check-certificate \
+  https://dicodingacademy.blob.core.windows.net/picodiploma/ml_pemula_academy/rockpaperscissors.zip
+
+import zipfile,os
+local_zip = "/tmp/rockpaperscissors/rps-cv-images"
+zip_ref = zipfile.ZipFile('rockpaperscissors.zip', 'r')
+zip_ref.extractall('/tmp')
+zip_ref.close()
+
+train_dir = os.path.join("tmp/rockpaperscissors", 'train')
+validation_dir = os.path.join("tmp/rockpaperscissors", 'val')
+
+base_dir= "/tmp/rockpaperscissors/rps-cv-images"
+os.listdir(base_dir)
+
+
+
+train_datagen = ImageDataGenerator(
+                    rescale=1./255,
+                    rotation_range=0.2,
+                    zoom_range=0.2,
+                    horizontal_flip=True,
+                    validation_split= 0.2)
+ 
+train_generator = train_datagen.flow_from_directory(
+    base_dir,
+    target_size = (100, 150),
+    shuffle = True,
+    subset= 'training')
+
+validation_generator = train_datagen.flow_from_directory(
+    base_dir,
+    target_size = (100, 150),
+    shuffle = True,
+    subset= 'validation')
+ 
+
+model = tf.keras.models.Sequential([
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(100, 150, 3)),
+    tf.keras.layers.MaxPooling2D(2, 2),
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Conv2D(128, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Conv2D(512, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(3, activation='softmax')
+])
+
+
+model.compile(loss='categorical_crossentropy',
+              optimizer= 'adam',
+              metrics=['accuracy'])
+
+history = model.fit(
+      train_generator,
+      steps_per_epoch=25,  # berapa batch yang akan dieksekusi pada setiap epoch
+      epochs=25, # tambahkan eposchs jika akurasi model belum optimal
+      validation_data=validation_generator, # menampilkan akurasi pengujian data validasi
+      validation_steps=5,  # berapa batch yang akan dieksekusi pada setiap epoch
+      verbose=2)
+
+accur = history.history['accuracy']
+val_accur = history.history['val_accuracy'] 
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+epochs = range(len(accur))
+
+plt.figure(figsize=(12,8))
+plt.plot(epochs, accur, 'r', label='Training accuracy')
+plt.plot(epochs, val_accur, 'b', label='Validation accuracy')
+plt.title('Training and validation accuracy')
+plt.legend(loc=0)
+plt.show()
+
+# Convert model to tflite.
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+tflite_model = converter.convert()
+
+with tf.io.gfile.GFile('model.tflite', 'wb') as f:
+  f.write(tflite_model)
+
+uploaded = files.upload()
+
+for fn in uploaded.keys():
+ 
+  # predicting images
+  path = fn
+  # memilih file gambar secara interaktif
+  img = image.load_img(path, target_size=(100,150))
+  imgplot = plt.imshow(img)
+  x = image.img_to_array(img)
+  x = np.expand_dims(x, axis=0)
+
+  # resize gambar dan mengubahnya menjadi larik numpy
+  images = np.vstack([x])
+  classes = model.predict(images, batch_size=10)
+  outclass = np.argmax(classes)
+
+  print(fn)
+  if outclass == 0:
+    print('scissors')
+  elif outclass == 1:
+    print('rock')
+  else:
+    print('paper')
